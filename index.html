@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#0f1419" />
 <title>Get Blinds Direct — Window Measure</title>
 <style>
   :root {
@@ -12,7 +13,6 @@
     --ink: #f4f6f8;
     --muted: #9aa7b5;
     --accent: #2f6fed;
-    --accent2: #1e4fbf;
     --ok: #1f9d55;
     --warn: #d97706;
     --bad: #dc2626;
@@ -21,359 +21,468 @@
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
-    margin: 0; padding: 0; height: 100%;
-    background: var(--bg); color: var(--ink);
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 16px; line-height: 1.4;
+    font-size: 16px;
+    line-height: 1.4;
   }
-  body { display: flex; flex-direction: column; min-height: 100dvh; }
-  .screen { display: none; flex: 1; flex-direction: column; padding: 20px 18px calc(20px + env(safe-area-inset-bottom)); max-width: 520px; width: 100%; margin: 0 auto; }
-  .screen.active { display: flex; }
-  .brand { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
-  h1 { font-size: 24px; margin: 0 0 8px; font-weight: 700; }
-  h2 { font-size: 20px; margin: 0 0 8px; font-weight: 650; }
-  .sub { color: var(--muted); margin: 0 0 20px; font-size: 15px; }
-  .choice {
-    display: flex; flex-direction: column; gap: 12px; margin-top: 8px;
-  }
-  button, .btn {
-    appearance: none; border: 0; border-radius: 14px;
-    padding: 18px 18px; font-size: 17px; font-weight: 600;
-    background: var(--accent); color: #fff; cursor: pointer;
-    min-height: 56px; text-align: left; width: 100%;
-    box-shadow: 0 6px 18px rgba(47,111,237,0.28);
-  }
-  button.secondary, .btn.secondary {
-    background: var(--card); color: var(--ink);
-    border: 1px solid var(--line); box-shadow: none;
-  }
-  button:disabled { opacity: 0.45; cursor: not-allowed; }
-  button.ghost {
-    background: transparent; color: var(--muted); box-shadow: none;
-    border: 1px dashed var(--line); font-weight: 500; font-size: 15px;
-  }
-  .btn-row { display: flex; gap: 10px; margin-top: auto; padding-top: 16px; }
-  .btn-row button { flex: 1; text-align: center; }
-  .card {
-    background: var(--card); border: 1px solid var(--line);
-    border-radius: 16px; padding: 16px; margin-bottom: 14px;
-  }
-  .status {
-    font-size: 14px; color: var(--muted); padding: 10px 12px;
-    background: rgba(255,255,255,0.04); border-radius: 10px; margin-bottom: 12px;
-  }
-  .status.ok { color: #86efac; background: rgba(31,157,85,0.12); }
-  .status.warn { color: #fcd34d; background: rgba(217,119,6,0.14); }
-  .status.bad { color: #fca5a5; background: rgba(220,38,38,0.14); }
+  button, input, label, p, h1, h2, span, li { font-size: 16px; }
+  h1 { font-size: 24px; line-height: 1.2; margin: 0 0 8px; font-weight: 700; }
+  h2 { font-size: 22px; line-height: 1.25; margin: 0 0 8px; font-weight: 700; }
+  button, input { font-family: inherit; }
 
-  /* Camera stage */
+  .shell {
+    height: 100dvh;
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .topbar {
+    flex: 0 0 auto;
+    padding: 12px 16px 10px;
+    background: #0f1419;
+    border-bottom: 1px solid var(--line);
+    z-index: 5;
+  }
+  .step-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  #stepLabel { font-weight: 700; }
+  #progressPct { color: var(--muted); font-weight: 600; }
+  .progress {
+    height: 8px;
+    border-radius: 999px;
+    background: #243041;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), #6ea2ff);
+    border-radius: inherit;
+    transition: width 0.25s ease;
+  }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    max-width: 100%;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-weight: 650;
+    line-height: 1.3;
+    background: rgba(47,111,237,0.18);
+    color: #dbe7ff;
+  }
+  .status-pill .led {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+    flex: 0 0 auto;
+  }
+  .status-pill.ok { background: rgba(31,157,85,0.2); color: #86efac; }
+  .status-pill.wait { background: rgba(47,111,237,0.22); color: #d6e4ff; }
+  .status-pill.warn { background: rgba(217,119,6,0.2); color: #fcd34d; }
+  .status-pill.bad { background: rgba(220,38,38,0.2); color: #fca5a5; }
+  .status-pill.pulse { animation: pillPulse 1.6s ease-in-out infinite; }
+  @keyframes pillPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(47,111,237,0.45); }
+    50% { box-shadow: 0 0 0 7px rgba(47,111,237,0); }
+  }
+  .status-pill.warn.pulse { animation-name: pillPulseWarn; }
+  @keyframes pillPulseWarn {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(217,119,6,0.45); }
+    50% { box-shadow: 0 0 0 7px rgba(217,119,6,0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .status-pill.pulse { animation: none; }
+  }
+
   .stage {
-    position: relative; flex: 1; min-height: 280px;
-    border-radius: 18px; overflow: hidden; background: #000;
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    background: #000;
+    overflow: hidden;
+  }
+  #camVideo, #overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  #camVideo {
+    object-fit: cover;
+    background: #000;
+  }
+  #overlay {
+    touch-action: none;
+    z-index: 2;
+  }
+  .stage.dim #camVideo { filter: brightness(0.28); }
+
+  .panel {
+    position: relative;
+    z-index: 3;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 16px;
+    background: var(--bg);
+  }
+  .panel.float {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: 12px;
+    height: auto;
+    max-height: calc(100% - 24px);
+    border-radius: 18px;
+    background: rgba(15,20,25,0.94);
+    border: 1px solid var(--line);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+  .brand {
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .sub { color: var(--muted); margin: 0 0 12px; }
+  .choice { display: flex; flex-direction: column; gap: 12px; }
+  button {
+    appearance: none;
+    border: 0;
+    border-radius: 14px;
+    padding: 14px 16px;
+    min-height: 48px;
+    font-weight: 650;
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    text-align: center;
+    width: 100%;
+  }
+  button.secondary {
+    background: var(--card);
+    color: var(--ink);
     border: 1px solid var(--line);
   }
-  #camVideo, #xrCanvas {
-    position: absolute; inset: 0; width: 100%; height: 100%;
-    object-fit: cover; transform: scaleX(1);
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button .btn-help {
+    display: block;
+    font-weight: 500;
+    margin-top: 4px;
+    color: inherit;
+    opacity: 0.9;
   }
-  #tapCanvas {
-    position: absolute; inset: 0; width: 100%; height: 100%;
-    touch-action: none;
-  }
-  .overlay {
-    position: absolute; inset: 0; pointer-events: none;
-    display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-    padding: 14px;
-  }
-  .guide-panel {
-    width: 100%; background: rgba(10,14,20,0.82); backdrop-filter: blur(8px);
-    border-radius: 14px; padding: 12px 14px; color: #fff;
-  }
-  .guide-title { font-weight: 650; font-size: 15px; margin-bottom: 6px; }
-  .guide-text { font-size: 13px; color: #d7dee6; }
-  .guide-anim {
-    width: 100%; height: 110px; margin: 8px 0 4px;
-  }
-  .crosshair {
-    position: absolute; left: 50%; top: 45%; width: 44px; height: 44px;
-    margin: -22px 0 0 -22px; border: 2px solid rgba(255,255,255,0.9);
-    border-radius: 50%; box-shadow: 0 0 0 1px rgba(0,0,0,0.35);
-  }
-  .crosshair::before, .crosshair::after {
-    content: ""; position: absolute; background: rgba(255,255,255,0.9);
-  }
-  .crosshair::before { left: 50%; top: 8px; bottom: 8px; width: 2px; margin-left: -1px; }
-  .crosshair::after { top: 50%; left: 8px; right: 8px; height: 2px; margin-top: -1px; }
-  .corner-dot {
-    position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px;
-    background: #4ade80; border: 2px solid #fff; border-radius: 50%;
-    box-shadow: 0 0 8px rgba(74,222,128,0.7);
-  }
-  .hud {
-    display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;
-  }
-  .pill {
-    background: var(--card); border: 1px solid var(--line);
-    border-radius: 999px; padding: 8px 12px; font-size: 13px; color: var(--muted);
-  }
-  .pill strong { color: var(--ink); }
+  button.secondary .btn-help { color: var(--muted); }
+  .choice button { text-align: left; min-height: 72px; }
 
-  /* Window frame graphic */
+  .why { margin: 0 0 12px; }
+  .illu { width: 100%; height: 132px; display: block; margin: 0 0 12px; }
+  .presets { display: flex; gap: 8px; margin: 0 0 12px; }
+  .presets button {
+    flex: 1;
+    background: #243041;
+    box-shadow: none;
+  }
+  .presets button[aria-pressed="true"] { background: var(--accent); }
+  .ref-size {
+    margin: 0 0 4px;
+    font-weight: 650;
+  }
+  label { display: block; font-weight: 650; margin-bottom: 6px; }
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    background: #0c1118;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    min-height: 48px;
+    font-size: 18px;
+    font-weight: 650;
+  }
+  input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  .unit { color: var(--muted); margin-top: 6px; }
+
+  .ref-badge {
+    position: absolute;
+    left: 50%;
+    top: 64px;
+    transform: translateX(-50%);
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+    background: rgba(15,20,25,0.88);
+    border: 1px solid rgba(31,157,85,0.7);
+    border-radius: 18px;
+    padding: 16px 22px;
+    text-align: center;
+    font-weight: 700;
+  }
+  .ref-badge[hidden] { display: none !important; }
+  #panelChoice {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  #panelChoice[hidden] { display: none !important; }
+  .ref-badge p { margin: 0; }
+
   .frame-wrap {
-    position: relative; width: 100%; aspect-ratio: 4 / 3;
-    margin: 8px 0 18px; display: flex; align-items: center; justify-content: center;
+    position: relative;
+    height: 84px;
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .window-frame {
-    position: relative; width: 78%; height: 78%;
-    border: 14px solid var(--frame); border-radius: 4px;
+    position: relative;
+    width: 96px;
+    height: 64px;
+    border: 12px solid var(--frame);
+    border-radius: 3px;
     background: linear-gradient(160deg, #1e2936 0%, #0b1220 100%);
-    box-shadow: inset 0 0 0 3px #8a949e, 0 10px 30px rgba(0,0,0,0.35);
+    box-shadow: inset 0 0 0 3px #8a949e;
   }
   .window-frame::before, .window-frame::after {
-    content: ""; position: absolute; background: #8a949e; opacity: 0.55;
+    content: "";
+    position: absolute;
+    background: #8a949e;
+    opacity: 0.7;
   }
   .window-frame::before { left: 50%; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; }
   .window-frame::after { top: 50%; left: 0; right: 0; height: 3px; margin-top: -1.5px; }
   .dim-w, .dim-h {
-    position: absolute; display: flex; align-items: center; justify-content: center;
-    color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-weight: 700;
   }
-  .dim-w { top: 4%; left: 11%; right: 11%; height: 18px; }
-  .dim-w::before, .dim-w::after, .dim-h::before, .dim-h::after {
-    content: ""; position: absolute; background: var(--accent); opacity: 0.7;
+  .dim-w { top: 0; left: 16px; right: 16px; height: 22px; }
+  .dim-h {
+    right: 0;
+    top: 22px;
+    bottom: 22px;
+    width: 22px;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
   }
-  .dim-w::before { left: 0; right: 0; top: 50%; height: 2px; }
-  .dim-w::after { /* arrow tips via text */ }
-  .dim-h { right: 2%; top: 11%; bottom: 11%; width: 18px; writing-mode: vertical-rl; transform: rotate(180deg); }
-  .dim-h::before { top: 0; bottom: 0; left: 50%; width: 2px; }
-
-  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  input[type="text"], input[type="number"], select {
-    width: 100%; background: #0c1118; color: var(--ink);
-    border: 1px solid var(--line); border-radius: 12px;
-    padding: 14px 12px; font-size: 18px; font-weight: 600;
-  }
-  input:focus, select:focus { outline: 2px solid var(--accent); border-color: transparent; }
-  .unit { font-size: 13px; color: var(--muted); margin-top: 4px; }
-  .confidence {
-    display: flex; align-items: center; gap: 8px; margin: 8px 0 0;
-    font-size: 14px;
-  }
-  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+  .confidence { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--muted); margin-top: 5px; flex: 0 0 auto; }
   .dot.high { background: var(--ok); }
   .dot.medium { background: var(--warn); }
   .dot.low { background: var(--bad); }
-  .hint { font-size: 13px; color: var(--muted); margin-top: 10px; }
+  .hint { color: var(--muted); margin: 8px 0 0; }
+  #panelReview { padding-top: 12px; padding-bottom: 8px; }
   .step-tag {
-    display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
-    text-transform: uppercase; color: var(--accent); background: rgba(47,111,237,0.14);
-    padding: 6px 10px; border-radius: 999px; margin-bottom: 10px;
+    display: inline-block;
+    font-weight: 700;
+    color: #b9d0ff;
+    background: rgba(47,111,237,0.18);
+    padding: 6px 10px;
+    border-radius: 999px;
+    margin-bottom: 10px;
   }
-  .ref-presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
-  .ref-presets button {
-    width: auto; min-height: 40px; padding: 10px 12px; font-size: 13px;
-    box-shadow: none; background: #243041;
+  .summary div + div { margin-top: 8px; }
+
+  .bottombar {
+    flex: 0 0 auto;
+    padding: 12px 16px 14px;
+    background: #0f1419;
+    border-top: 1px solid var(--line);
+    z-index: 5;
   }
-  .ref-presets button.active { background: var(--accent); }
-  .footer-note { font-size: 12px; color: #6b7785; margin-top: 14px; text-align: center; }
+  .note, .instruction { margin: 0 0 10px; }
+  .note { color: var(--muted); min-height: 2.8em; }
+  .instruction { font-weight: 650; min-height: 2.8em; }
+  /* Keep the viewfinder still while the person is tapping. */
+  body[data-camera="1"] .bottombar {
+    height: 252px;
+    overflow: hidden;
+  }
+  .actions { display: flex; gap: 10px; }
+  .actions button { flex: 1; width: auto; }
+  #btnPrimary { margin-top: 10px; }
+  #btnPrimary[hidden] { display: none; }
+
   #toast {
-    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
-    background: rgba(20,24,30,0.95); color: #fff; padding: 12px 16px;
-    border-radius: 12px; font-size: 14px; max-width: 90%; display: none; z-index: 50;
+    position: fixed;
+    left: 50%;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    background: #14181e;
+    color: #fff;
+    padding: 12px 16px;
+    border-radius: 12px;
+    max-width: calc(100% - 32px);
+    display: none;
+    z-index: 20;
     border: 1px solid var(--line);
   }
 </style>
 </head>
 <body>
+<div class="shell">
+  <header class="topbar">
+    <div class="step-row">
+      <div id="stepLabel">Step 1 of 4</div>
+      <div id="progressPct">0%</div>
+    </div>
+    <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div id="statusPill" class="status-pill" role="status" aria-live="polite"><span class="led" aria-hidden="true"></span><span id="statusText">Choose how to measure</span></div>
+  </header>
 
-<!-- SCREEN: CHOICE -->
-<section id="screen-choice" class="screen active" aria-label="Choose measure method">
-  <div class="brand">Get Blinds Direct</div>
-  <h1>Measure your window</h1>
-  <p class="sub">We’ll use your size to show products that fit. Pick how you want to enter it.</p>
-  <div class="choice">
-    <button id="btnLidar" type="button">
-      Can we use your camera to use LiDAR to measure the window?
-      <div style="font-weight:500;font-size:13px;opacity:0.85;margin-top:6px;">Guided scan with your phone camera</div>
-    </button>
-    <button id="btnManual" class="secondary" type="button">
-      Enter measurements manually
-      <div style="font-weight:500;font-size:13px;color:var(--muted);margin-top:6px;">Type width and length in inches</div>
-    </button>
-  </div>
-  <p class="footer-note">Camera stays on this phone. Nothing is uploaded.</p>
-</section>
-
-<!-- SCREEN: GUIDE + PERMISSIONS -->
-<section id="screen-guide" class="screen" aria-label="Scan guide">
-  <div class="brand">Get Blinds Direct</div>
-  <h2>Window scan</h2>
-  <p class="sub">No room map — just the window frame. Hold the phone steady and aim at the frame, not the glass.</p>
-  <div class="card">
-    <svg class="guide-anim" viewBox="0 0 320 110" aria-hidden="true">
-      <rect x="70" y="18" width="180" height="74" rx="4" fill="none" stroke="#c8d0d8" stroke-width="6"/>
-      <circle id="guideDot" cx="70" cy="18" r="7" fill="#4ade80"/>
-      <path id="guidePath" d="M70 18 H250 V92 H70 Z" fill="none" stroke="#2f6fed" stroke-width="2" stroke-dasharray="6 4" opacity="0.7"/>
-      <text x="160" y="104" text-anchor="middle" fill="#9aa7b5" font-size="11">Hold at each corner, then drag top &amp; side</text>
-    </svg>
-    <ol style="margin:0;padding-left:18px;color:var(--muted);font-size:14px;">
-      <li>Hold steady at the top-left corner for a few seconds</li>
-      <li>Drag slowly across the top edge to the top-right</li>
-      <li>Drag down the side to the bottom-right</li>
-      <li>Finish at the bottom-left — aim at the frame</li>
-    </ol>
-  </div>
-  <div id="permStatus" class="status">Tap Start to allow camera and motion.</div>
-  <div class="btn-row">
-    <button class="secondary" type="button" id="btnGuideBack">Back</button>
-    <button type="button" id="btnStartScan">Start</button>
-  </div>
-</section>
-
-<!-- SCREEN: SCAN -->
-<section id="screen-scan" class="screen" aria-label="Live scan">
-  <div class="brand">Get Blinds Direct · Scan</div>
-  <div id="scanModePill" class="status warn">Checking depth support…</div>
-  <div class="stage" id="stage">
+  <main class="stage" id="stage">
     <video id="camVideo" playsinline muted autoplay></video>
-    <canvas id="tapCanvas"></canvas>
-    <div class="crosshair" id="crosshair" hidden></div>
-    <div class="overlay">
-      <div class="guide-panel">
-        <div class="guide-title" id="scanTitle">Get ready</div>
-        <div class="guide-text" id="scanHint">Follow the prompts below.</div>
+    <canvas id="overlay"></canvas>
+
+    <section id="panelChoice" class="panel" aria-label="Choose measure method">
+      <div class="brand">Get Blinds Direct</div>
+      <h1>Measure your window</h1>
+      <p class="sub">We’ll walk you through it, one step at a time. Nothing is uploaded.</p>
+      <div class="choice">
+        <button id="btnCamera" type="button">
+          Use your camera
+          <span class="btn-help">Rear camera. You tap the frame on the screen.</span>
+        </button>
+        <button id="btnManual" class="secondary" type="button">
+          Type the size
+          <span class="btn-help">Enter width and length in inches.</span>
+        </button>
       </div>
+    </section>
+
+    <section id="panelRef" class="panel float" hidden aria-label="Why a reference card">
+      <h2>Why a card?</h2>
+      <p class="why">Your phone camera can't tell size by itself. Hold a credit card (or any standard card) flat against the window frame so we can tell how big things are.</p>
+      <svg class="illu" viewBox="0 0 320 180" role="img" aria-label="A card held flat against a window frame">
+        <rect x="36" y="14" width="200" height="150" rx="3" fill="#1b2836" stroke="#c8d0d8" stroke-width="12"/>
+        <line x1="136" y1="20" x2="136" y2="158" stroke="#8a949e" stroke-width="4"/>
+        <line x1="42" y1="89" x2="230" y2="89" stroke="#8a949e" stroke-width="4"/>
+        <g transform="translate(118,108) rotate(-8)">
+          <rect x="0" y="0" width="132" height="78" rx="8" fill="#f4f6f8" stroke="#2f6fed" stroke-width="4"/>
+          <rect x="12" y="14" width="46" height="34" rx="4" fill="#d7dee6"/>
+          <rect x="66" y="18" width="52" height="8" rx="3" fill="#c5ced6"/>
+          <rect x="66" y="32" width="40" height="8" rx="3" fill="#c5ced6"/>
+          <rect x="12" y="56" width="108" height="8" rx="3" fill="#2f6fed" opacity="0.85"/>
+        </g>
+      </svg>
+      <div class="presets">
+        <button type="button" id="presetCard" aria-pressed="true">Credit card</button>
+        <button type="button" id="presetTape" aria-pressed="false">Ruler or tape</button>
+      </div>
+      <p class="ref-size" id="refSizeLabel">Standard card width: 3.370 in</p>
+      <div id="customLength" hidden>
+        <label for="refKnown">Length you marked (inches)</label>
+        <input id="refKnown" type="number" inputmode="decimal" step="0.125" min="0.5" placeholder="12" />
+      </div>
+    </section>
+
+    <div id="refBadge" class="ref-badge" hidden>
+      <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="30" fill="#1f9d55"/>
+        <path d="M18 33 l10 10 l18-20" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <p>Reference set</p>
     </div>
-  </div>
-  <div class="hud">
-    <div class="pill">Width: <strong id="liveW">—</strong></div>
-    <div class="pill">Length: <strong id="liveH">—</strong></div>
-    <div class="pill">Confidence: <strong id="liveConf">—</strong></div>
-  </div>
-  <div class="btn-row">
-    <button class="secondary" type="button" id="btnCancelScan">Cancel</button>
-    <button type="button" id="btnScanAction">Next corner</button>
-  </div>
-</section>
 
-<!-- SCREEN: REFERENCE SANITY CHECK -->
-<section id="screen-ref" class="screen" aria-label="Reference check">
-  <div class="brand">Get Blinds Direct</div>
-  <h2>Quick accuracy check</h2>
-  <p class="sub">Measure a known length in the same plane as the window frame before we accept the reading.</p>
-  <div class="card">
-    <label for="refKnown">Known length (inches)</label>
-    <div class="ref-presets">
-      <button type="button" data-ref="11" class="active">US letter · 11″</button>
-      <button type="button" data-ref="3.375">Credit card · 3⅜″</button>
-      <button type="button" data-ref="12">Ruler · 12″</button>
+    <section id="panelReview" class="panel" hidden aria-label="Your window">
+      <div class="brand">Get Blinds Direct</div>
+      <div class="step-tag">Step 1 of configurator</div>
+      <h2>Your window</h2>
+      <p class="sub">Width is across the opening. Length is top to bottom. Edit either one. Values round to the nearest ⅛ inch.</p>
+      <div class="frame-wrap" aria-hidden="true">
+        <div class="dim-w">WIDTH</div>
+        <div class="window-frame"></div>
+        <div class="dim-h">LENGTH</div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label for="fieldW">Width (in)</label>
+          <input id="fieldW" type="text" inputmode="decimal" placeholder="0" autocomplete="off" />
+          <div class="unit">e.g. 36 ⅛</div>
+        </div>
+        <div>
+          <label for="fieldH">Length (in)</label>
+          <input id="fieldH" type="text" inputmode="decimal" placeholder="0" autocomplete="off" />
+          <div class="unit">e.g. 54 ½</div>
+        </div>
+      </div>
+      <div id="windowMeta" class="confidence" hidden>
+        <span class="dot" id="confDot"></span>
+        <span id="confLabel">Confidence: —</span>
+      </div>
+      <p class="hint" id="windowHint"></p>
+    </section>
+
+    <section id="panelNext" class="panel" hidden aria-label="Next step placeholder">
+      <div class="brand">Get Blinds Direct</div>
+      <div class="step-tag">Step 2 · placeholder</div>
+      <h2>Product options</h2>
+      <p class="sub">This test page stops here. Your window size is ready for the next configurator step.</p>
+      <div class="summary">
+        <div>Width: <strong id="outW">—</strong></div>
+        <div>Length: <strong id="outH">—</strong></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bottombar">
+    <p id="lidarNote" class="note" hidden>iPhone Safari can't use LiDAR from a web page, so we measure from your taps.</p>
+    <p id="instruction">Use your camera, or type the width and length.</p>
+    <div class="actions">
+      <button class="secondary" type="button" id="btnUndo" disabled>Undo last point</button>
+      <button class="secondary" type="button" id="btnStartOver" disabled>Start over</button>
     </div>
-    <input id="refKnown" type="number" inputmode="decimal" step="0.125" min="0.5" value="11" />
-    <div class="unit">Or type your own</div>
-  </div>
-  <div id="refStatus" class="status">On the next screen, tap both ends of that object on the camera view.</div>
-  <div class="btn-row">
-    <button class="secondary" type="button" id="btnRefBack">Back</button>
-    <button type="button" id="btnRefGo">Measure reference</button>
-  </div>
-</section>
-
-<!-- SCREEN: REFERENCE TAP -->
-<section id="screen-ref-tap" class="screen" aria-label="Tap reference">
-  <div class="brand">Get Blinds Direct · Reference</div>
-  <div id="refTapStatus" class="status">Tap one end of the known object, then the other.</div>
-  <div class="stage">
-    <video id="refVideo" playsinline muted autoplay></video>
-    <canvas id="refCanvas"></canvas>
-  </div>
-  <div class="hud">
-    <div class="pill">Measured: <strong id="refMeasured">—</strong></div>
-    <div class="pill">Error: <strong id="refError">—</strong></div>
-  </div>
-  <div class="btn-row">
-    <button class="secondary" type="button" id="btnRefRetry">Retry</button>
-    <button type="button" id="btnRefAccept" disabled>Accept</button>
-  </div>
-  <button class="ghost" type="button" id="btnSkipToManual" style="margin-top:10px;">LiDAR unavailable — enter manually</button>
-</section>
-
-<!-- SCREEN: WINDOW (configurator step 1) -->
-<section id="screen-window" class="screen" aria-label="Your window">
-  <div class="brand">Get Blinds Direct</div>
-  <div class="step-tag">Step 1 of configurator</div>
-  <h2>Your window</h2>
-  <p class="sub">Width across the opening. Length is the drop (top to bottom). Edit if needed — values to the nearest ⅛ inch.</p>
-
-  <div class="frame-wrap" aria-hidden="true">
-    <div class="dim-w">WIDTH</div>
-    <div class="window-frame"></div>
-    <div class="dim-h">LENGTH</div>
-  </div>
-
-  <div class="field-row">
-    <div>
-      <label for="fieldW">Width (in)</label>
-      <input id="fieldW" type="text" inputmode="decimal" placeholder="0" autocomplete="off" />
-      <div class="unit">e.g. 36 ⅛</div>
-    </div>
-    <div>
-      <label for="fieldH">Length (in)</label>
-      <input id="fieldH" type="text" inputmode="decimal" placeholder="0" autocomplete="off" />
-      <div class="unit">e.g. 54 ½</div>
-    </div>
-  </div>
-
-  <div id="windowMeta" class="confidence" hidden>
-    <span class="dot" id="confDot"></span>
-    <span id="confLabel">Confidence: —</span>
-  </div>
-  <p class="hint" id="windowHint"></p>
-
-  <div class="btn-row">
-    <button class="secondary" type="button" id="btnWindowBack">Back</button>
-    <button type="button" id="btnContinue">Continue</button>
-  </div>
-</section>
-
-<!-- SCREEN: PLACEHOLDER NEXT -->
-<section id="screen-next" class="screen" aria-label="Next step placeholder">
-  <div class="brand">Get Blinds Direct</div>
-  <div class="step-tag">Step 2 · placeholder</div>
-  <h2>Product options</h2>
-  <p class="sub">This test page stops here. Your window size is ready for the next configurator step.</p>
-  <div class="card">
-    <div>Width: <strong id="outW">—</strong></div>
-    <div style="margin-top:6px;">Length: <strong id="outH">—</strong></div>
-  </div>
-  <div class="btn-row">
-    <button class="secondary" type="button" id="btnStartOver">Start over</button>
-  </div>
-</section>
-
-<div id="toast"></div>
+    <button type="button" id="btnPrimary" hidden>Continue</button>
+  </footer>
+</div>
+<div id="toast" role="status"></div>
 
 <script>
 (function () {
   'use strict';
 
-  // ---------- helpers ----------
-  const INCH = 1;
   const EIGHTH = 0.125;
-  const REF_TOLERANCE = 0.03; // 3%
+  const REF_TOLERANCE = 0.03;
+  const CARD_WIDTH_IN = 3.370;
+  const CORNER_NAMES = ['top-left', 'top-right', 'bottom-right', 'bottom-left'];
 
   function $(id) { return document.getElementById(id); }
-  function show(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    $(id).classList.add('active');
-  }
-  function toast(msg) {
-    const t = $('toast');
-    t.textContent = msg;
-    t.style.display = 'block';
-    clearTimeout(toast._timer);
-    toast._timer = setTimeout(() => { t.style.display = 'none'; }, 2800);
-  }
+
   function roundEighth(n) {
     if (!isFinite(n)) return NaN;
     return Math.round(n / EIGHTH) * EIGHTH;
@@ -391,7 +500,6 @@
   function parseInch(str) {
     if (!str) return NaN;
     const s = String(str).trim().toLowerCase().replace(/″|"/g, '').replace(/,/g, '');
-    // mixed number: 36 1/8 or 36 ⅛
     const map = { '⅛': 1/8, '¼': 1/4, '⅜': 3/8, '½': 1/2, '⅝': 5/8, '¾': 3/4, '⅞': 7/8 };
     for (const [k, v] of Object.entries(map)) {
       if (s.includes(k)) {
@@ -409,11 +517,10 @@
   }
   function cmFromIn(n) { return n * 2.54; }
 
-  // ---------- state ----------
   const state = {
     stream: null,
-    mode: 'unknown', // 'webxr' | 'tap' | 'unavailable'
-    corners: [], // {x,y} normalized 0-1 or {X,Y,Z} meters
+    mode: 'tap',
+    corners: [],
     scaleInPerPx: null,
     widthIn: null,
     heightIn: null,
@@ -422,74 +529,180 @@
     motionSamples: [],
     motionWatching: false,
     refPoints: [],
-    path: null, // 'lidar' | 'manual'
+    path: null,
     webxrSupported: false,
+    phase: 'choice',
+    refKind: 'card',
+    _refKnown: CARD_WIDTH_IN,
+    _refVerify: null,
+    _refErrorPct: null,
+    lastTap: null,
+    lastLabels: { width: null, height: null },
+    manual: false,
+    envWarning: null,
+    envHold: false
   };
 
-  // ---------- animated guide ----------
-  (function animateGuide() {
-    const dot = $('guideDot');
-    if (!dot) return;
-    const pts = [[70,18],[250,18],[250,92],[70,92],[70,18]];
-    let i = 0, t0 = null, dwell = 700, move = 900;
-    function step(ts) {
-      if (!t0) t0 = ts;
-      const [x0, y0] = pts[i];
-      const [x1, y1] = pts[(i + 1) % pts.length];
-      const elapsed = ts - t0;
-      if (elapsed < dwell) {
-        dot.setAttribute('cx', x0); dot.setAttribute('cy', y0);
-      } else {
-        const u = Math.min(1, (elapsed - dwell) / move);
-        const e = u * u * (3 - 2 * u);
-        dot.setAttribute('cx', x0 + (x1 - x0) * e);
-        dot.setAttribute('cy', y0 + (y1 - y0) * e);
-        if (u >= 1) { i = (i + 1) % pts.length; t0 = ts; }
-      }
-      requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
-  })();
+  let baseStatus = { text: 'Choose how to measure', kind: 'idle', pulse: false };
+  let lumaTimer = null;
 
-  // ---------- permissions ----------
-  async function requestMotionPermission() {
-    try {
-      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-        const r = await DeviceMotionEvent.requestPermission();
-        if (r !== 'granted') return false;
-      }
-      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        await DeviceOrientationEvent.requestPermission();
-      }
-      return true;
-    } catch (e) {
-      return false;
-    }
+  function setStatus(text, kind, pulse) {
+    baseStatus = { text: text, kind: kind || 'idle', pulse: !!pulse };
+    renderPill();
+  }
+  function renderPill() {
+    const s = state.envWarning
+      ? { text: state.envWarning, kind: 'warn', pulse: true }
+      : baseStatus;
+    const pill = $('statusPill');
+    pill.className = 'status-pill ' + s.kind + (s.pulse ? ' pulse' : '');
+    $('statusText').textContent = s.text;
+  }
+  function environmentWarning(luma, motionVar) {
+    const lowLight = luma != null && luma < 45;
+    const shaky = motionVar != null && motionVar > 1;
+    if (lowLight && shaky) return 'Low light — hold the phone steady';
+    if (lowLight) return 'Low light — move somewhere brighter';
+    if (motionVar != null && motionVar > 2.5) return 'Hold the phone steady';
+    if (shaky) return 'Phone is moving — hold it steady';
+    return null;
+  }
+  function applyEnvironment(luma, motionVar) {
+    const cameraOn = state.phase === 'camera-live' || state.phase === 'ref-tap' || state.phase === 'corners' || state.phase === 'calculating';
+    state.envWarning = cameraOn ? environmentWarning(luma, motionVar) : null;
+    renderPill();
   }
 
-  async function requestCamera() {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: {
-        facingMode: { ideal: 'environment' },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      }
+  function setProgress(pct) {
+    const n = Math.max(0, Math.min(100, Math.round(pct)));
+    $('progressFill').style.width = n + '%';
+    $('progressPct').textContent = n + '%';
+    $('progressBar').setAttribute('aria-valuenow', String(n));
+  }
+  function setStep(n, label) {
+    $('stepLabel').textContent = label || ('Step ' + n + ' of 4');
+  }
+  function setInstruction(text) {
+    $('instruction').textContent = text;
+  }
+  function showPrimary(label, enabled) {
+    const b = $('btnPrimary');
+    if (!label) { b.hidden = true; b.disabled = false; return; }
+    b.hidden = false;
+    b.disabled = enabled === false;
+    b.textContent = label;
+  }
+  function setUndoEnabled(on) { $('btnUndo').disabled = !on; }
+  function setStartEnabled(on) { $('btnStartOver').disabled = !on; }
+  function showNote(on) { $('lidarNote').hidden = !on; }
+  function showPanel(id) {
+    ['panelChoice', 'panelRef', 'panelReview', 'panelNext'].forEach(function (pid) {
+      $(pid).hidden = pid !== id;
     });
-    return stream;
+  }
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(function () { t.style.display = 'none'; }, 2800);
   }
 
-  function stopStream() {
-    if (state.stream) {
-      state.stream.getTracks().forEach(t => t.stop());
-      state.stream = null;
+  function flowChrome() {
+    const p = state.phase;
+    document.body.dataset.phase = p;
+    const cameraVisible = p === 'camera-live' || p === 'ref-card' || p === 'ref-tap' || p === 'ref-set' || p === 'corners' || p === 'calculating';
+    document.body.dataset.camera = cameraVisible ? '1' : '0';
+    $('stage').classList.toggle('dim', p === 'ref-card');
+    $('camVideo').style.visibility = cameraVisible ? 'visible' : 'hidden';
+    $('overlay').style.visibility = (p === 'camera-live' || p === 'ref-card' || p === 'ref-tap' || p === 'ref-set' || p === 'corners' || p === 'calculating') ? 'visible' : 'hidden';
+    showNote(p === 'camera-live' || p === 'ref-card' || p === 'ref-tap' || p === 'ref-set' || p === 'corners' || p === 'calculating');
+    $('refBadge').hidden = p !== 'ref-set';
+    if (p === 'choice') {
+      setStep(1);
+      setProgress(0);
+      showPanel('panelChoice');
+      setUndoEnabled(false);
+      setStartEnabled(false);
+      showPrimary(null);
+    } else if (p === 'starting') {
+      setStep(1);
+      setProgress(8);
+      showPanel(null);
+      setUndoEnabled(false);
+      setStartEnabled(true);
+      showPrimary(null);
+    } else if (p === 'camera-live') {
+      setStep(1);
+      setProgress(15);
+      showPanel(null);
+      setUndoEnabled(false);
+      setStartEnabled(true);
+      showPrimary('Continue');
+    } else if (p === 'ref-card') {
+      setStep(2);
+      setProgress(22);
+      showPanel('panelRef');
+      setUndoEnabled(false);
+      setStartEnabled(true);
+      showPrimary('Continue');
+    } else if (p === 'ref-tap') {
+      setStep(2);
+      const pts = state.refPoints.length;
+      const extra = (state._refVerify ? 8 : 0) + pts * 4;
+      setProgress(28 + extra);
+      showPanel(null);
+      setUndoEnabled(pts > 0 || !!state._refVerify);
+      setStartEnabled(true);
+      showPrimary('Mark the corners', false);
+    } else if (p === 'ref-set') {
+      setStep(2);
+      setProgress(42);
+      showPanel(null);
+      setUndoEnabled(true);
+      setStartEnabled(true);
+      showPrimary('Mark the corners');
+    } else if (p === 'corners') {
+      setStep(3);
+      setProgress(48 + state.corners.length * 10);
+      showPanel(null);
+      setUndoEnabled(state.corners.length > 0);
+      setStartEnabled(true);
+      showPrimary('Use these sizes', state.corners.length === 4);
+    } else if (p === 'calculating') {
+      setStep(3);
+      setProgress(94);
+      showPanel(null);
+      setUndoEnabled(false);
+      setStartEnabled(true);
+      showPrimary('Use these sizes', false);
+    } else if (p === 'review') {
+      setStep(4, state.manual ? 'Manual entry' : 'Step 4 of 4');
+      setProgress(state.manual ? 100 : 100);
+      showPanel('panelReview');
+      setUndoEnabled(false);
+      setStartEnabled(true);
+      showPrimary('Continue');
+    } else if (p === 'next') {
+      setStep(4);
+      setProgress(100);
+      showPanel('panelNext');
+      setUndoEnabled(false);
+      setStartEnabled(true);
+      showPrimary(null);
+    } else if (p === 'denied') {
+      setStep(1);
+      setProgress(8);
+      showPanel(null);
+      setUndoEnabled(false);
+      setStartEnabled(true);
+      showPrimary('Type the size instead');
     }
-    const v = $('camVideo');
-    if (v) v.srcObject = null;
-    const rv = $('refVideo');
-    if (rv) rv.srcObject = null;
+    resizeCanvas();
+    drawOverlay();
   }
 
+  // ---------- motion ----------
   function startMotionWatch() {
     state.motionSamples = [];
     if (state.motionWatching) return;
@@ -510,19 +723,52 @@
   function motionVariance() {
     const s = state.motionSamples;
     if (s.length < 8) return null;
-    const mean = s.reduce((a, b) => a + b, 0) / s.length;
-    const v = s.reduce((a, b) => a + (b - mean) ** 2, 0) / s.length;
-    return v;
+    const mean = s.reduce(function (a, b) { return a + b; }, 0) / s.length;
+    return s.reduce(function (a, b) { return a + (b - mean) ** 2; }, 0) / s.length;
   }
 
-  // ---------- WebXR feature detect ----------
+  async function requestMotionPermission() {
+    try {
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        const r = await DeviceMotionEvent.requestPermission();
+        if (r !== 'granted') return false;
+      }
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        await DeviceOrientationEvent.requestPermission();
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function requestCamera() {
+    return navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    });
+  }
+
+  function stopStream() {
+    if (lumaTimer) { clearInterval(lumaTimer); lumaTimer = null; }
+    if (state.stream) {
+      state.stream.getTracks().forEach(function (t) { t.stop(); });
+      state.stream = null;
+    }
+    const v = $('camVideo');
+    if (v) v.srcObject = null;
+  }
+
   async function detectWebXR() {
     try {
       if (!navigator.xr || !navigator.xr.isSessionSupported) {
         state.webxrSupported = false;
         return false;
       }
-      // Prefer immersive-ar; depth-sensing is not available in iOS Safari today.
       const ar = await navigator.xr.isSessionSupported('immersive-ar');
       state.webxrSupported = !!ar;
       return !!ar;
@@ -532,7 +778,6 @@
     }
   }
 
-  // ---------- confidence ----------
   function computeConfidence(opts) {
     const reasons = [];
     let score = 1;
@@ -567,399 +812,556 @@
     return level;
   }
 
-  // ---------- UI wiring: choice ----------
-  $('btnLidar').addEventListener('click', () => {
-    state.path = 'lidar';
-    show('screen-guide');
-  });
-  $('btnManual').addEventListener('click', () => {
-    state.path = 'manual';
-    openWindowScreen(null, null, null);
-  });
-  $('btnGuideBack').addEventListener('click', () => {
-    stopStream();
-    show('screen-choice');
-  });
-
-  $('btnStartScan').addEventListener('click', async () => {
-    const status = $('permStatus');
-    status.className = 'status';
-    status.textContent = 'Requesting camera and motion…';
+  function readLuma() {
+    const video = $('camVideo');
+    if (!video.videoWidth) return null;
+    const probe = readLuma._c || (readLuma._c = document.createElement('canvas'));
+    probe.width = 32;
+    probe.height = 32;
+    const c = probe.getContext('2d', { willReadFrequently: true });
     try {
-      const motionOk = await requestMotionPermission();
-      if (!motionOk) {
-        status.className = 'status warn';
-        status.textContent = 'Motion permission denied. We’ll continue with camera only; confidence may be lower.';
+      c.drawImage(video, 0, 0, 32, 32);
+      const d = c.getImageData(0, 0, 32, 32).data;
+      let sum = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        sum += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
       }
-      state.stream = await requestCamera();
-      startMotionWatch();
-
-      const xr = await detectWebXR();
-      // Honest: iOS Safari has no WebXR AR / LiDAR access today.
-      const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      if (xr && !isiOS) {
-        state.mode = 'webxr';
-      } else {
-        state.mode = 'tap';
-      }
-
-      // Go to reference check first (sanity), then corner capture
-      show('screen-ref');
-      status.className = 'status ok';
-      status.textContent = 'Permissions granted.';
-    } catch (err) {
-      status.className = 'status bad';
-      status.textContent = 'Camera permission blocked or unavailable. You can enter sizes manually.';
-      toast('Camera unavailable — use manual entry');
-      setTimeout(() => openWindowScreen(null, null, null), 900);
+      return sum / (d.length / 4);
+    } catch (e) {
+      return null;
     }
-  });
+  }
 
-  // ---------- reference presets ----------
-  document.querySelectorAll('.ref-presets button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.ref-presets button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      $('refKnown').value = btn.getAttribute('data-ref');
+  function watchEnvironment() {
+    if (lumaTimer) clearInterval(lumaTimer);
+    lumaTimer = setInterval(function () {
+      if (state.envHold) return;
+      applyEnvironment(readLuma(), motionVariance());
+    }, 700);
+  }
+
+  // ---------- overlay ----------
+  function resizeCanvas() {
+    const canvas = $('overlay');
+    const stage = $('stage');
+    const rect = stage.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, Math.floor(rect.width));
+    const h = Math.max(1, Math.floor(rect.height));
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas._cssW = w;
+    canvas._cssH = h;
+    canvas._dpr = dpr;
+  }
+
+  function strokeHalo(ctx, draw) {
+    ctx.save();
+    ctx.lineCap = 'square';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+    ctx.lineWidth = 8;
+    draw();
+    ctx.stroke();
+    ctx.strokeStyle = '#f4f7fb';
+    ctx.lineWidth = 4;
+    draw();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawBrackets(ctx, w, h) {
+    const m = Math.max(22, Math.round(Math.min(w, h) * 0.1));
+    const len = Math.max(36, Math.round(Math.min(w, h) * 0.12));
+    const l = m, r = w - m, t = m, b = h - m;
+    strokeHalo(ctx, function () {
+      ctx.beginPath();
+      ctx.moveTo(l + len, t); ctx.lineTo(l, t); ctx.lineTo(l, t + len);
+      ctx.moveTo(r - len, t); ctx.lineTo(r, t); ctx.lineTo(r, t + len);
+      ctx.moveTo(r - len, b); ctx.lineTo(r, b); ctx.lineTo(r, b - len);
+      ctx.moveTo(l + len, b); ctx.lineTo(l, b); ctx.lineTo(l, b - len);
     });
-  });
+  }
 
-  $('btnRefBack').addEventListener('click', () => show('screen-guide'));
+  function drawCrosshair(ctx, x, y) {
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+    ctx.lineWidth = 4;
+    crossPath(ctx, x, y);
+    ctx.stroke();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    crossPath(ctx, x, y);
+    ctx.stroke();
+    ctx.restore();
+  }
+  function crossPath(ctx, x, y) {
+    ctx.beginPath();
+    ctx.arc(x, y, 18, 0, Math.PI * 2);
+    ctx.moveTo(x - 28, y); ctx.lineTo(x - 8, y);
+    ctx.moveTo(x + 8, y); ctx.lineTo(x + 28, y);
+    ctx.moveTo(x, y - 28); ctx.lineTo(x, y - 8);
+    ctx.moveTo(x, y + 8); ctx.lineTo(x, y + 28);
+  }
 
-  $('btnRefGo').addEventListener('click', () => {
-    const known = parseFloat($('refKnown').value);
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawLabel(ctx, text, x, y) {
+    ctx.save();
+    ctx.font = '600 16px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+    const tw = ctx.measureText(text).width;
+    const bw = tw + 16;
+    const bh = 28;
+    ctx.fillStyle = 'rgba(15,20,25,0.88)';
+    roundRect(ctx, x - bw / 2, y - bh / 2, bw, bh, 8);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y);
+    ctx.restore();
+  }
+
+  function drawNumberedDot(ctx, x, y, n) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, 14, 0, Math.PI * 2);
+    ctx.fillStyle = '#4ade80';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#fff';
+    ctx.stroke();
+    ctx.fillStyle = '#06210f';
+    ctx.font = '700 16px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(n), x, y + 1);
+    ctx.restore();
+  }
+
+  function measureFromCorners(corners, scale) {
+    if (!scale || corners.length < 2) return null;
+    const top = Math.hypot(corners[1].x - corners[0].x, corners[1].y - corners[0].y) * scale;
+    if (corners.length < 4) {
+      let height = null;
+      if (corners.length >= 3) {
+        height = Math.hypot(corners[2].x - corners[1].x, corners[2].y - corners[1].y) * scale;
+      }
+      return { width: top, height: height, spread: 0 };
+    }
+    const tl = corners[0], tr = corners[1], br = corners[2], bl = corners[3];
+    const top2 = Math.hypot(tr.x - tl.x, tr.y - tl.y) * scale;
+    const bot = Math.hypot(br.x - bl.x, br.y - bl.y) * scale;
+    const left = Math.hypot(bl.x - tl.x, bl.y - tl.y) * scale;
+    const right = Math.hypot(br.x - tr.x, br.y - tr.y) * scale;
+    return {
+      width: (top2 + bot) / 2,
+      height: (left + right) / 2,
+      spread: Math.max(Math.abs(top2 - bot), Math.abs(left - right))
+    };
+  }
+
+  function drawOverlay() {
+    const canvas = $('overlay');
+    const ctx = canvas.getContext('2d');
+    const w = canvas._cssW || 1;
+    const h = canvas._cssH || 1;
+    const dpr = canvas._dpr || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    state.lastLabels = { width: null, height: null };
+    const showGuide = state.phase === 'camera-live' || state.phase === 'ref-card' || state.phase === 'ref-tap' || state.phase === 'ref-set' || state.phase === 'corners' || state.phase === 'calculating';
+    if (!showGuide) return;
+
+    drawBrackets(ctx, w, h);
+
+    if (state.lastTap && (state.phase === 'ref-tap' || state.phase === 'corners')) {
+      drawCrosshair(ctx, state.lastTap.x, state.lastTap.y);
+    }
+
+    if (state.phase === 'ref-tap' || state.phase === 'ref-set') {
+      const pts = state.refPoints;
+      if (pts.length === 2) {
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.lineTo(pts[1].x, pts[1].y);
+        ctx.strokeStyle = '#2f6fed';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+      const endLabel = state.refKind === 'card' ? ['L', 'R'] : ['A', 'B'];
+      pts.forEach(function (p, i) {
+        drawEndpoint(ctx, p.x, p.y, endLabel[i] || String(i + 1));
+      });
+      if (state.phase === 'ref-set' && pts.length === 2) {
+        const mx = (pts[0].x + pts[1].x) / 2;
+        const my = (pts[0].y + pts[1].y) / 2 + 36;
+        ctx.save();
+        ctx.strokeStyle = '#4ade80';
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(mx - 16, my);
+        ctx.lineTo(mx - 4, my + 12);
+        ctx.lineTo(mx + 18, my - 14);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    if (state.phase === 'corners' || state.phase === 'calculating') {
+      const c = state.corners;
+      if (c.length) {
+        ctx.beginPath();
+        c.forEach(function (p, i) { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+        if (c.length === 4) ctx.closePath();
+        if (c.length === 4) {
+          ctx.fillStyle = 'rgba(47,111,237,0.33)';
+          ctx.fill();
+        }
+        ctx.strokeStyle = '#8eb4ff';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        const m = state.scaleInPerPx ? measureFromCorners(c, state.scaleInPerPx) : null;
+        if (m && m.width && c.length >= 2) {
+          state.lastLabels.width = fmtInch(m.width) + ' wide';
+          const topMid = { x: (c[0].x + c[1].x) / 2, y: (c[0].y + c[1].y) / 2 - 22 };
+          drawLabel(ctx, state.lastLabels.width, clamp(topMid.x, 78, w - 78), clamp(topMid.y, 20, h - 20));
+        }
+        if (m && m.height && c.length >= 3) {
+          state.lastLabels.height = fmtInch(m.height) + ' tall';
+          const sideMid = { x: (c[1].x + c[2].x) / 2, y: (c[1].y + c[2].y) / 2 };
+          drawLabel(ctx, state.lastLabels.height, clamp(sideMid.x, 78, w - 78), clamp(sideMid.y, 20, h - 20));
+        }
+        c.forEach(function (p, i) { drawNumberedDot(ctx, p.x, p.y, i + 1); });
+      }
+    }
+  }
+
+  function drawEndpoint(ctx, x, y, label) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, 16, 0, Math.PI * 2);
+    ctx.fillStyle = '#60a5fa';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#fff';
+    ctx.stroke();
+    ctx.fillStyle = '#04101c';
+    ctx.font = '700 16px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, x, y + 1);
+    ctx.restore();
+  }
+
+  function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+
+  // ---------- reference ----------
+  function knownLength() {
+    if (state.refKind === 'card') return CARD_WIDTH_IN;
+    const n = parseFloat($('refKnown').value);
+    return n;
+  }
+
+  function refInstruction() {
+    const card = state.refKind === 'card';
+    if (!state._refVerify) {
+      if (state.refPoints.length === 0) {
+        return card
+          ? "Tap the card's left edge, then its right edge."
+          : 'Tap one end of the length you marked, then the other.';
+      }
+      return card ? "Now tap the card's right edge." : 'Now tap the other end.';
+    }
+    if (state.refPoints.length === 0) return 'Tap both edges again to double-check.';
+    return card ? 'Now tap the right edge again.' : 'Now tap the other end again.';
+  }
+
+  function enterRefTap() {
+    const known = knownLength();
     if (!isFinite(known) || known <= 0) {
-      toast('Enter a valid known length');
+      setStatus('Type the length you marked', 'warn', true);
+      setInstruction('Enter the inches between the two ends you will tap.');
       return;
     }
-    beginReferenceTap(known);
-  });
-
-  function attachStreamTo(videoEl) {
-    if (!state.stream) return;
-    videoEl.srcObject = state.stream;
-    videoEl.play().catch(() => {});
-  }
-
-  function sizeCanvasToVideo(canvas, video) {
-    const rect = canvas.parentElement.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.floor(rect.width * dpr);
-    canvas.height = Math.floor(rect.height * dpr);
-    canvas.style.width = rect.width + 'px';
-    canvas.style.height = rect.height + 'px';
-    return { w: rect.width, h: rect.height, dpr };
-  }
-
-  function beginReferenceTap(knownIn) {
+    state._refKnown = known;
+    state._refVerify = null;
     state.refPoints = [];
-    state._refKnown = knownIn;
-    $('refMeasured').textContent = '—';
-    $('refError').textContent = '—';
-    $('btnRefAccept').disabled = true;
-    $('refTapStatus').className = 'status';
-    $('refTapStatus').textContent = 'Tap one end of the known object, then the other. Keep it in the same plane as the window frame.';
-    show('screen-ref-tap');
-    const video = $('refVideo');
-    const canvas = $('refCanvas');
-    attachStreamTo(video);
-    const draw = () => {
-      const ctx = canvas.getContext('2d');
-      const { w, h, dpr } = sizeCanvasToVideo(canvas, video);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, h);
-      state.refPoints.forEach((p, i) => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
-        ctx.fillStyle = i === 0 ? '#4ade80' : '#60a5fa';
-        ctx.fill();
-        ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
-      });
-      if (state.refPoints.length === 2) {
-        ctx.beginPath();
-        ctx.moveTo(state.refPoints[0].x, state.refPoints[0].y);
-        ctx.lineTo(state.refPoints[1].x, state.refPoints[1].y);
-        ctx.strokeStyle = '#2f6fed'; ctx.lineWidth = 3; ctx.stroke();
-      }
-    };
-    const onTap = (ev) => {
-      ev.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const t = ev.changedTouches ? ev.changedTouches[0] : ev;
-      const x = t.clientX - rect.left;
-      const y = t.clientY - rect.top;
-      if (state.refPoints.length >= 2) state.refPoints = [];
-      state.refPoints.push({ x, y });
-      draw();
-      if (state.refPoints.length === 2) finishReference();
-      else {
-        $('refTapStatus').textContent = 'Now tap the other end.';
-      }
-    };
-    canvas.onclick = onTap;
-    canvas.ontouchend = onTap;
-    video.onloadedmetadata = draw;
-    setTimeout(draw, 200);
+    state.lastTap = null;
+    state.phase = 'ref-tap';
+    setStatus('Waiting for you to tap', 'wait', true);
+    setInstruction(refInstruction());
+    flowChrome();
   }
 
   function finishReference() {
-    const [a, b] = state.refPoints;
+    const a = state.refPoints[0];
+    const b = state.refPoints[1];
     const px = Math.hypot(b.x - a.x, b.y - a.y);
     if (px < 8) {
-      $('refTapStatus').className = 'status bad';
-      $('refTapStatus').textContent = 'Points too close — retry.';
       state.refPoints = [];
+      state.lastTap = null;
+      setStatus('Waiting for you to tap', 'warn', true);
+      setInstruction('Those taps are too close. Tap the two edges again.');
+      flowChrome();
       return;
     }
     const known = state._refKnown;
     state.scaleInPerPx = known / px;
-    // For display we also estimate measured length from scale after a fake — here measured == known by construction of scale.
-    // True accuracy check needs a second object OR we treat the user-confirmed span as setting scale and ask them to confirm it looks right.
-    // Better approach: user sets known length, taps ends → scale is set. Then we ask them to re-tap a DIFFERENT known span? 
-    // Spec: "show error %, and only allow Accept if within tolerance".
-    // With a single pair, error is 0 by definition. So we use motion steadiness during the taps as a proxy,
-    // and optionally ask them to confirm visually. We'll also sample a second "verify" by asking them to
-    // hold still and we check motion variance. Additionally: re-measure by requiring they typed known correctly
-    // and we display expected vs — actually for single-scale setup, we compute an "agreement" from
-    // how steady they were and present measured = known with confidence. To satisfy error%, we do a
-    // two-pass: after setting provisional scale, prompt a verify tap on the SAME object; compare.
     if (!state._refVerify) {
-      state._refVerify = { firstPx: px, known };
+      state._refVerify = { firstPx: px, known: known };
       state.refPoints = [];
-      $('refTapStatus').className = 'status warn';
-      $('refTapStatus').textContent = 'Verify: tap both ends of the same object again.';
-      $('refMeasured').textContent = fmtInch(known) + ' (set)';
+      state.lastTap = null;
+      setStatus('Waiting for you to tap', 'wait', true);
+      setInstruction(refInstruction());
+      flowChrome();
       return;
     }
     const firstPx = state._refVerify.firstPx;
     const measured = px * (known / firstPx);
     const err = Math.abs(measured - known) / known;
     state._refErrorPct = err;
-    $('refMeasured').textContent = fmtInch(measured) + ' (' + cmFromIn(measured).toFixed(1) + ' cm)';
-    $('refError').textContent = (err * 100).toFixed(1) + '%';
-    // Finalize scale from average of two spans
     state.scaleInPerPx = known / ((firstPx + px) / 2);
-    const conf = computeConfidence({ refErrorPct: err });
+    computeConfidence({ refErrorPct: err });
     if (err <= REF_TOLERANCE) {
-      $('refTapStatus').className = 'status ok';
-      $('refTapStatus').textContent = 'Reference within ' + (REF_TOLERANCE * 100) + '%. Confidence: ' + conf + '. Accept to scan the window.';
-      $('btnRefAccept').disabled = false;
+      state.phase = 'ref-set';
+      state.envWarning = null;
+      setStatus('Reference set', 'ok', false);
+      setInstruction('The size is set. Next, tap the four corners of the frame.');
+      flowChrome();
     } else {
-      $('refTapStatus').className = 'status bad';
-      $('refTapStatus').textContent = 'Off by ' + (err * 100).toFixed(1) + '% (limit ' + (REF_TOLERANCE * 100) + '%). Retry, keep the object flat in the window plane.';
-      $('btnRefAccept').disabled = true;
       state._refVerify = null;
       state.refPoints = [];
+      state.lastTap = null;
+      state.phase = 'ref-tap';
+      setStatus('Those taps don’t match', 'bad', true);
+      setInstruction('Hold the card flat on the frame and tap the two edges again.');
+      flowChrome();
     }
   }
 
-  $('btnRefRetry').addEventListener('click', () => {
-    state._refVerify = null;
-    state.refPoints = [];
-    state.scaleInPerPx = null;
-    beginReferenceTap(parseFloat($('refKnown').value) || 11);
-  });
+  function onRefTap(x, y) {
+    if (state.refPoints.length >= 2) state.refPoints = [];
+    state.refPoints.push({ x: x, y: y });
+    state.lastTap = { x: x, y: y };
+    if (state.refPoints.length === 2) finishReference();
+    else {
+      setStatus('Waiting for you to tap', 'wait', true);
+      setInstruction(refInstruction());
+      flowChrome();
+    }
+  }
 
-  $('btnRefAccept').addEventListener('click', () => {
-    state._refVerify = null;
-    beginWindowScan();
-  });
+  // ---------- corners ----------
+  function cornerInstruction() {
+    const n = state.corners.length;
+    if (n >= 4) return 'Check the width and height, then continue.';
+    return 'Tap the ' + CORNER_NAMES[n] + ' corner of the window frame.';
+  }
 
-  $('btnSkipToManual').addEventListener('click', () => {
-    stopStream();
-    stopMotionWatch();
-    openWindowScreen(null, null, null);
-  });
-
-  // ---------- window corner scan (tap fallback / primary on iPhone) ----------
-  function beginWindowScan() {
+  function beginCorners() {
     state.corners = [];
-    show('screen-scan');
-    const video = $('camVideo');
-    attachStreamTo(video);
-    const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    state.lastTap = null;
+    state.phase = 'corners';
+    setStatus('Waiting for you to tap', 'wait', true);
+    setInstruction(cornerInstruction());
+    flowChrome();
+  }
 
-    if (state.mode === 'webxr' && !isiOS) {
-      $('scanModePill').className = 'status ok';
-      $('scanModePill').textContent = 'Depth sensing available — using AR hit-test when possible.';
-      // Attempt WebXR; if it fails, fall back to tap.
-      startWebXRScan().catch(() => {
-        state.mode = 'tap';
-        startTapScan(true);
-      });
-    } else {
-      startTapScan(isiOS);
+  function updateCornerReadout() {
+    if (state.corners.length < 4 || !state.scaleInPerPx) return;
+    const m = measureFromCorners(state.corners, state.scaleInPerPx);
+    state.widthIn = roundEighth(m.width);
+    state.heightIn = roundEighth(m.height);
+    computeConfidence({ refErrorPct: state._refErrorPct || 0, sampleSpread: m.spread });
+  }
+
+  function onCornerTap(x, y) {
+    if (state.corners.length >= 4) return;
+    state.corners.push({ x: x, y: y });
+    state.lastTap = { x: x, y: y };
+    if (state.corners.length < 4) {
+      setStatus('Corner ' + state.corners.length + ' of 4 placed', 'ok', true);
+      setInstruction(cornerInstruction());
+      flowChrome();
+      return;
+    }
+    state.phase = 'calculating';
+    setStatus('Calculating...', 'wait', true);
+    setInstruction('Working out the width and height.');
+    flowChrome();
+    window.setTimeout(function () {
+      if (state.phase !== 'calculating') return;
+      updateCornerReadout();
+      state.phase = 'corners';
+      setStatus('Corner 4 of 4 placed', 'ok', false);
+      setInstruction(cornerInstruction());
+      flowChrome();
+    }, 700);
+  }
+
+  function undo() {
+    if (state.phase === 'ref-tap') {
+      if (state.refPoints.length) {
+        state.refPoints.pop();
+        state.lastTap = state.refPoints.length ? state.refPoints[state.refPoints.length - 1] : null;
+      } else if (state._refVerify) {
+        state._refVerify = null;
+        state.lastTap = null;
+      }
+      setStatus('Waiting for you to tap', 'wait', true);
+      setInstruction(refInstruction());
+      flowChrome();
+      return;
+    }
+    if (state.phase === 'ref-set') {
+      state.phase = 'ref-tap';
+      state.refPoints = [];
+      state._refVerify = null;
+      state.lastTap = null;
+      state.scaleInPerPx = null;
+      setStatus('Waiting for you to tap', 'wait', true);
+      setInstruction(refInstruction());
+      flowChrome();
+      return;
+    }
+    if (state.phase === 'corners' && state.corners.length) {
+      state.corners.pop();
+      state.lastTap = state.corners.length ? state.corners[state.corners.length - 1] : null;
+      state.widthIn = null;
+      state.heightIn = null;
+      if (state.corners.length === 0) setStatus('Waiting for you to tap', 'wait', true);
+      else setStatus('Corner ' + state.corners.length + ' of 4 placed', 'ok', true);
+      setInstruction(cornerInstruction());
+      flowChrome();
     }
   }
 
-  function startTapScan(isiOS) {
-    state.mode = 'tap';
-    $('scanModePill').className = 'status warn';
-    $('scanModePill').textContent = isiOS
-      ? 'iPhone Safari has no LiDAR/WebXR depth access. Using tap-on-camera with your reference scale. Approximate — keep the phone aimed at the frame plane.'
-      : 'Depth unavailable. Using tap-on-camera with your reference scale. Approximate — plane must match the window frame.';
-    $('crosshair').hidden = true;
-    $('scanTitle').textContent = 'Corner 1 of 4 — top-left';
-    $('scanHint').textContent = 'Tap the top-left of the window frame (not the glass).';
-    $('btnScanAction').textContent = 'Undo';
-    $('liveW').textContent = '—';
-    $('liveH').textContent = '—';
-    $('liveConf').textContent = '—';
-
-    const canvas = $('tapCanvas');
-    const video = $('camVideo');
-    const labels = ['top-left', 'top-right', 'bottom-right', 'bottom-left'];
-
-    function redraw() {
-      const ctx = canvas.getContext('2d');
-      const { w, h, dpr } = sizeCanvasToVideo(canvas, video);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, h);
-      // polyline
-      if (state.corners.length) {
-        ctx.beginPath();
-        state.corners.forEach((p, i) => {
-          if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
-        });
-        if (state.corners.length === 4) ctx.closePath();
-        ctx.strokeStyle = 'rgba(47,111,237,0.95)';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-      }
-      state.corners.forEach((p) => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
-        ctx.fillStyle = '#4ade80';
-        ctx.fill();
-        ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
-      });
-    }
-
-    function updateLive() {
-      if (state.corners.length === 4 && state.scaleInPerPx) {
-        const [tl, tr, br, bl] = state.corners;
-        const top = Math.hypot(tr.x - tl.x, tr.y - tl.y) * state.scaleInPerPx;
-        const bot = Math.hypot(br.x - bl.x, br.y - bl.y) * state.scaleInPerPx;
-        const left = Math.hypot(bl.x - tl.x, bl.y - tl.y) * state.scaleInPerPx;
-        const right = Math.hypot(br.x - tr.x, br.y - tr.y) * state.scaleInPerPx;
-        const width = (top + bot) / 2;
-        const height = (left + right) / 2;
-        const spread = Math.max(Math.abs(top - bot), Math.abs(left - right));
-        state.widthIn = roundEighth(width);
-        state.heightIn = roundEighth(height);
-        const conf = computeConfidence({ refErrorPct: state._refErrorPct || 0, sampleSpread: spread });
-        $('liveW').textContent = fmtInch(state.widthIn);
-        $('liveH').textContent = fmtInch(state.heightIn);
-        $('liveConf').textContent = conf;
-      }
-    }
-
-    const onTap = (ev) => {
-      ev.preventDefault();
-      if (state.corners.length >= 4) return;
-      const rect = canvas.getBoundingClientRect();
-      const t = ev.changedTouches ? ev.changedTouches[0] : ev;
-      state.corners.push({ x: t.clientX - rect.left, y: t.clientY - rect.top });
-      redraw();
-      updateLive();
-      if (state.corners.length < 4) {
-        $('scanTitle').textContent = 'Corner ' + (state.corners.length + 1) + ' of 4 — ' + labels[state.corners.length];
-        $('scanHint').textContent = 'Tap the ' + labels[state.corners.length] + ' of the window frame.';
-      } else {
-        $('scanTitle').textContent = 'All 4 corners captured';
-        $('scanHint').textContent = 'Review the live size, then continue.';
-        $('btnScanAction').textContent = 'Use these sizes';
-      }
-    };
-
-    canvas.onclick = onTap;
-    canvas.ontouchend = onTap;
-    video.onloadedmetadata = redraw;
-    setTimeout(redraw, 250);
-
-    $('btnScanAction').onclick = () => {
-      if (state.corners.length === 4) {
-        stopStream();
-        stopMotionWatch();
-        openWindowScreen(state.widthIn, state.heightIn, state.confidence);
-      } else if (state.corners.length > 0) {
-        state.corners.pop();
-        redraw();
-        updateLive();
-        $('scanTitle').textContent = 'Corner ' + (state.corners.length + 1) + ' of 4 — ' + labels[state.corners.length];
-        $('scanHint').textContent = 'Tap the ' + labels[state.corners.length] + ' of the window frame.';
-        $('btnScanAction').textContent = 'Undo';
-      }
-    };
-  }
-
-  async function startWebXRScan() {
-    // Honest minimal WebXR path for non-iOS AR devices. If session fails, caller falls back.
-    $('scanModePill').className = 'status';
-    $('scanModePill').textContent = 'Starting AR session…';
-    const session = await navigator.xr.requestSession('immersive-ar', {
-      requiredFeatures: ['hit-test'],
-      optionalFeatures: ['dom-overlay', 'depth-sensing'],
-    });
-    // For this test page we still drive the same 4-corner UX via hit-test reticle.
-    // Many browsers won't grant this; fallback handles it.
-    state._xrSession = session;
-    state.mode = 'webxr';
-    $('scanModePill').className = 'status ok';
-    $('scanModePill').textContent = 'AR hit-test active. Align the reticle on each frame corner and tap Next.';
-    $('crosshair').hidden = false;
-    // Simplified: reuse tap canvas coordinates as hit proxies when select events fire.
-    // Full XR render loop omitted for single-file size; if session exists we still collect 4 hits.
-    const labels = ['top-left', 'top-right', 'bottom-right', 'bottom-left'];
-    state.corners = [];
-    $('scanTitle').textContent = 'Corner 1 of 4 — top-left';
-    $('scanHint').textContent = 'Point at the top-left frame corner, hold steady, tap Next corner.';
-    $('btnScanAction').textContent = 'Next corner';
-    $('btnScanAction').onclick = () => {
-      // Without a full WebGL XR loop we cannot sample real depth here in headless.
-      // Mark as needing fallback if we can't get poses.
-      toast('AR depth sample unavailable in this browser — switching to tap mode');
-      try { session.end(); } catch (e) {}
-      state.mode = 'tap';
-      startTapScan(false);
-    };
-  }
-
-  $('btnCancelScan').addEventListener('click', () => {
-    stopStream();
-    stopMotionWatch();
-    show('screen-choice');
-  });
-
-  // ---------- window screen ----------
+  // ---------- review ----------
   function openWindowScreen(w, h, conf) {
     stopStream();
-    show('screen-window');
+    stopMotionWatch();
+    state.envWarning = null;
+    state.phase = 'review';
     $('fieldW').value = (w && isFinite(w)) ? String(roundEighth(w)) : '';
     $('fieldH').value = (h && isFinite(h)) ? String(roundEighth(h)) : '';
     if (conf) {
       $('windowMeta').hidden = false;
       $('confDot').className = 'dot ' + conf;
       $('confLabel').textContent = 'Confidence: ' + conf + (state.confidenceReasons.length ? ' — ' + state.confidenceReasons.join('; ') : '');
-      $('windowHint').textContent = state.mode === 'tap'
-        ? 'Sizes came from the camera tap method with your reference scale. Double-check with a tape before ordering.'
-        : 'Double-check with a tape before ordering.';
+      $('windowHint').textContent = 'Double-check with a tape before you order.';
+      setStatus('Done', 'ok', false);
+      setInstruction('Edit a size if it looks wrong, then continue.');
     } else {
       $('windowMeta').hidden = true;
       $('windowHint').textContent = 'Enter width and length to the nearest ⅛ inch.';
+      setStatus('Type both sizes', 'wait', true);
+      setInstruction('Type the width and the length in inches.');
+    }
+    flowChrome();
+  }
+
+  function formatField(el) {
+    const n = parseInch(el.value);
+    if (isFinite(n) && n > 0) el.value = String(roundEighth(n));
+  }
+
+  // ---------- navigation ----------
+  function resetAll() {
+    stopStream();
+    stopMotionWatch();
+    state.corners = [];
+    state.scaleInPerPx = null;
+    state.widthIn = null;
+    state.heightIn = null;
+    state.confidence = 'low';
+    state.confidenceReasons = [];
+    state.refPoints = [];
+    state.path = null;
+    state._refVerify = null;
+    state._refErrorPct = null;
+    state.lastTap = null;
+    state.manual = false;
+    state.envWarning = null;
+    state.mode = 'tap';
+    state.phase = 'choice';
+    setStatus('Choose how to measure', 'idle', false);
+    setInstruction('Use your camera, or type the width and length.');
+    flowChrome();
+  }
+
+  async function startCamera() {
+    state.path = 'lidar';
+    state.manual = false;
+    state.phase = 'starting';
+    setStatus('Starting camera...', 'wait', true);
+    setInstruction('Allow the camera when your phone asks.');
+    showNote(false);
+    showPanel(null);
+    flowChrome();
+    const started = Date.now();
+    try {
+      await requestMotionPermission();
+      state.stream = await requestCamera();
+      $('camVideo').srcObject = state.stream;
+      await $('camVideo').play().catch(function () {});
+      startMotionWatch();
+      await detectWebXR();
+      state.mode = 'tap';
+      const wait = Math.max(0, 700 - (Date.now() - started));
+      await new Promise(function (r) { setTimeout(r, wait); });
+      if (state.phase !== 'starting') return;
+      state.phase = 'camera-live';
+      setStatus('Camera live', 'ok', false);
+      setInstruction('Point the rear camera at the window frame.');
+      watchEnvironment();
+      flowChrome();
+    } catch (err) {
+      stopStream();
+      state.phase = 'denied';
+      setStatus('Camera denied', 'bad', false);
+      setInstruction('The camera is blocked. Turn it on in Safari, or type the size.');
+      flowChrome();
     }
   }
 
-  $('btnWindowBack').addEventListener('click', () => {
-    show('screen-choice');
-  });
+  function goReferenceCard() {
+    state.phase = 'ref-card';
+    setStatus('Camera live', 'ok', false);
+    setInstruction(refCardInstruction());
+    flowChrome();
+  }
 
-  $('btnContinue').addEventListener('click', () => {
+  function goManual() {
+    state.path = 'manual';
+    state.manual = true;
+    openWindowScreen(null, null, null);
+  }
+
+  function acceptSizes() {
+    if (!(state.widthIn > 0) || !(state.heightIn > 0)) {
+      setStatus('Calculating...', 'wait', true);
+      return;
+    }
+    openWindowScreen(state.widthIn, state.heightIn, state.confidence);
+  }
+
+  function continueReview() {
     const w = parseInch($('fieldW').value);
     const h = parseInch($('fieldH').value);
     if (!isFinite(w) || w <= 0 || !isFinite(h) || h <= 0) {
+      setStatus('Enter both width and length', 'warn', true);
       toast('Enter both width and length');
       return;
     }
@@ -967,29 +1369,84 @@
     state.heightIn = roundEighth(h);
     $('outW').textContent = fmtInch(state.widthIn) + ' (' + cmFromIn(state.widthIn).toFixed(1) + ' cm)';
     $('outH').textContent = fmtInch(state.heightIn) + ' (' + cmFromIn(state.heightIn).toFixed(1) + ' cm)';
-    show('screen-next');
+    state.phase = 'next';
+    setStatus('Done', 'ok', false);
+    setInstruction('This test page stops here. Start over to measure again.');
+    flowChrome();
+  }
+
+  $('btnCamera').addEventListener('click', startCamera);
+  $('btnManual').addEventListener('click', goManual);
+  $('btnStartOver').addEventListener('click', resetAll);
+  $('btnUndo').addEventListener('click', undo);
+  $('btnPrimary').addEventListener('click', function () {
+    if (state.phase === 'camera-live') goReferenceCard();
+    else if (state.phase === 'ref-card') enterRefTap();
+    else if (state.phase === 'ref-set') beginCorners();
+    else if (state.phase === 'corners') acceptSizes();
+    else if (state.phase === 'review') continueReview();
+    else if (state.phase === 'denied') goManual();
   });
 
-  $('btnStartOver').addEventListener('click', () => {
-    state.corners = [];
-    state.scaleInPerPx = null;
-    state.widthIn = null;
-    state.heightIn = null;
-    state._refVerify = null;
-    show('screen-choice');
+  function refCardInstruction() {
+    return state.refKind === 'card'
+      ? 'Hold the card flat on the frame. Next you’ll tap its left and right edges.'
+      : 'Type the length you marked, then tap its two ends.';
+  }
+  $('presetCard').addEventListener('click', function () {
+    state.refKind = 'card';
+    $('presetCard').setAttribute('aria-pressed', 'true');
+    $('presetTape').setAttribute('aria-pressed', 'false');
+    $('refSizeLabel').hidden = false;
+    $('customLength').hidden = true;
+    if (state.phase === 'ref-card') setInstruction(refCardInstruction());
+  });
+  $('presetTape').addEventListener('click', function () {
+    state.refKind = 'tape';
+    $('presetTape').setAttribute('aria-pressed', 'true');
+    $('presetCard').setAttribute('aria-pressed', 'false');
+    $('refSizeLabel').hidden = true;
+    $('customLength').hidden = false;
+    if (state.phase === 'ref-card') setInstruction(refCardInstruction());
+    $('refKnown').focus();
   });
 
-  // Secure context note
+  $('fieldW').addEventListener('blur', function () { formatField($('fieldW')); });
+  $('fieldH').addEventListener('blur', function () { formatField($('fieldH')); });
+
+  $('overlay').addEventListener('pointerup', function (ev) {
+    if (state.phase !== 'ref-tap' && state.phase !== 'corners') return;
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    const rect = $('overlay').getBoundingClientRect();
+    const x = ev.clientX - rect.left;
+    const y = ev.clientY - rect.top;
+    if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
+    if (state.phase === 'ref-tap') onRefTap(x, y);
+    else onCornerTap(x, y);
+  });
+
+  window.addEventListener('resize', function () { resizeCanvas(); drawOverlay(); });
+
   if (!window.isSecureContext) {
-    const s = $('permStatus');
-    // only matters later; also toast on choice
     console.warn('Not a secure context — camera will fail. Use the HTTPS link.');
   }
 
-  // Expose a tiny test hook for headless checks
+  setInstruction('Use your camera, or type the width and length.');
+  flowChrome();
+
   window.__GBD_MEASURE__ = {
-    parseInch, fmtInch, roundEighth, REF_TOLERANCE,
-    detectWebXR, computeConfidence, state
+    parseInch: parseInch,
+    fmtInch: fmtInch,
+    roundEighth: roundEighth,
+    REF_TOLERANCE: REF_TOLERANCE,
+    CARD_WIDTH_IN: CARD_WIDTH_IN,
+    detectWebXR: detectWebXR,
+    computeConfidence: computeConfidence,
+    environmentWarning: environmentWarning,
+    measureFromCorners: measureFromCorners,
+    state: state,
+    applyEnvironment: applyEnvironment,
+    setPhaseForTest: function (phase) { state.phase = phase; flowChrome(); }
   };
 })();
 </script>
