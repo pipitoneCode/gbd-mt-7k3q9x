@@ -124,26 +124,60 @@
     min-height: 0;
     background: #000;
     overflow: hidden;
+    touch-action: none;
   }
   #camVideo, #overlay {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
+    pointer-events: none;
   }
   #camVideo {
+    z-index: 0;
     object-fit: cover;
     background: #000;
   }
   #overlay {
-    touch-action: none;
+    z-index: 1;
+  }
+  #tapLayer {
+    position: absolute;
+    inset: 0;
     z-index: 2;
+    touch-action: none;
+    background: rgba(0,0,0,0.001);
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  #ripple {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 48px;
+    height: 48px;
+    margin-left: -24px;
+    margin-top: -24px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.45);
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+  }
+  #ripple.go { visibility: visible; animation: tapRipple 450ms ease-out; }
+  @keyframes tapRipple {
+    0% { transform: scale(0.25); opacity: 1; }
+    100% { transform: scale(1.8); opacity: 0; }
   }
   .stage.dim #camVideo { filter: brightness(0.28); }
 
+  .illu, .ref-badge, .ref-badge svg { pointer-events: none; }
+  .is-off { display: none !important; pointer-events: none !important; }
   .panel {
     position: relative;
-    z-index: 3;
+    z-index: 5;
     height: 100%;
     overflow-x: hidden;
     overflow-y: auto;
@@ -233,7 +267,7 @@
     left: 50%;
     top: 64px;
     transform: translateX(-50%);
-    z-index: 4;
+    z-index: 6;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -366,8 +400,11 @@
   </header>
 
   <main class="stage" id="stage">
-    <video id="camVideo" playsinline muted autoplay></video>
-    <canvas id="overlay"></canvas>
+    <video id="camVideo" playsinline webkit-playsinline muted autoplay></video>
+    <canvas id="overlay" aria-hidden="true"></canvas>
+    <div id="tapLayer">
+      <div id="ripple"></div>
+    </div>
 
     <section id="panelChoice" class="panel" aria-label="Choose measure method">
       <div class="brand">Get Blinds Direct</div>
@@ -461,6 +498,7 @@
   </main>
 
   <footer class="bottombar">
+    <p id="debugLine" class="note" hidden>debug</p>
     <p id="lidarNote" class="note" hidden>iPhone Safari can't use LiDAR from a web page, so we measure from your taps.</p>
     <p id="instruction">Use your camera, or type the width and length.</p>
     <div class="actions">
@@ -597,7 +635,10 @@
   function showNote(on) { $('lidarNote').hidden = !on; }
   function showPanel(id) {
     ['panelChoice', 'panelRef', 'panelReview', 'panelNext'].forEach(function (pid) {
-      $(pid).hidden = pid !== id;
+      const el = $(pid);
+      const on = pid === id;
+      el.hidden = !on;
+      el.classList.toggle('is-off', !on);
     });
   }
   function toast(msg) {
@@ -700,6 +741,7 @@
     }
     resizeCanvas();
     drawOverlay();
+    updateDebug();
   }
 
   // ---------- motion ----------
@@ -850,6 +892,8 @@
     const h = Math.max(1, Math.floor(rect.height));
     canvas.width = Math.floor(w * dpr);
     canvas.height = Math.floor(h * dpr);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
     canvas._cssW = w;
     canvas._cssH = h;
     canvas._dpr = dpr;
@@ -984,7 +1028,7 @@
 
     drawBrackets(ctx, w, h);
 
-    if (state.lastTap && (state.phase === 'ref-tap' || state.phase === 'corners')) {
+    if (state.lastTap && state.phase !== 'ref-card') {
       drawCrosshair(ctx, state.lastTap.x, state.lastTap.y);
     }
 
@@ -1111,7 +1155,6 @@
     const px = Math.hypot(b.x - a.x, b.y - a.y);
     if (px < 8) {
       state.refPoints = [];
-      state.lastTap = null;
       setStatus('Waiting for you to tap', 'warn', true);
       setInstruction('Those taps are too close. Tap the two edges again.');
       flowChrome();
@@ -1122,7 +1165,6 @@
     if (!state._refVerify) {
       state._refVerify = { firstPx: px, known: known };
       state.refPoints = [];
-      state.lastTap = null;
       setStatus('Waiting for you to tap', 'wait', true);
       setInstruction(refInstruction());
       flowChrome();
@@ -1143,7 +1185,6 @@
     } else {
       state._refVerify = null;
       state.refPoints = [];
-      state.lastTap = null;
       state.phase = 'ref-tap';
       setStatus('Those taps don’t match', 'bad', true);
       setInstruction('Hold the card flat on the frame and tap the two edges again.');
@@ -1314,8 +1355,16 @@
     try {
       await requestMotionPermission();
       state.stream = await requestCamera();
-      $('camVideo').srcObject = state.stream;
-      await $('camVideo').play().catch(function () {});
+      const video = $('camVideo');
+      armVideo(video);
+      video.srcObject = state.stream;
+      state.videoReady = false;
+      try {
+        await video.play();
+        state.videoReady = cameraReady();
+      } catch (playErr) {
+        state.videoReady = false;
+      }
       startMotionWatch();
       await detectWebXR();
       state.mode = 'tap';
@@ -1323,8 +1372,13 @@
       await new Promise(function (r) { setTimeout(r, wait); });
       if (state.phase !== 'starting') return;
       state.phase = 'camera-live';
-      setStatus('Camera live', 'ok', false);
-      setInstruction('Point the rear camera at the window frame.');
+      if (cameraReady()) {
+        setStatus('Camera live', 'ok', false);
+        setInstruction('Point the rear camera at the window frame.');
+      } else {
+        setStatus('Tap the picture to start the camera', 'warn', true);
+        setInstruction('The camera is allowed, but the picture is not playing yet.');
+      }
       watchEnvironment();
       flowChrome();
     } catch (err) {
@@ -1414,16 +1468,141 @@
   $('fieldW').addEventListener('blur', function () { formatField($('fieldW')); });
   $('fieldH').addEventListener('blur', function () { formatField($('fieldH')); });
 
-  $('overlay').addEventListener('pointerup', function (ev) {
-    if (state.phase !== 'ref-tap' && state.phase !== 'corners') return;
+  const debugOn = /(?:^|[?&])debug=1(?:&|$)/.test(location.search);
+
+  function armVideo(video) {
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    video.autoplay = true;
+    video.controls = false;
+    try { video.disablePictureInPicture = true; } catch (e) {}
+  }
+
+  function cameraReady() {
+    if (state.forceReady) {
+      state.videoReady = true;
+      return true;
+    }
+    const video = $('camVideo');
+    const ready = !!(video && video.srcObject && video.readyState >= 2 && !video.paused);
+    state.videoReady = ready;
+    return ready;
+  }
+
+  function mapTap(clientX, clientY) {
+    const rect = $('tapLayer').getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    const video = $('camVideo');
+    const vw = video.videoWidth || 0;
+    const vh = video.videoHeight || 0;
+    let contentX = x;
+    let contentY = y;
+    if (vw > 0 && vh > 0 && rect.width > 0 && rect.height > 0) {
+      const scale = Math.max(rect.width / vw, rect.height / vh);
+      const offX = (rect.width - vw * scale) / 2;
+      const offY = (rect.height - vh * scale) / 2;
+      contentX = (x - offX) / scale;
+      contentY = (y - offY) / scale;
+    }
+    return { x: x, y: y, contentX: contentX, contentY: contentY, dpr: window.devicePixelRatio || 1 };
+  }
+
+  function updateDebug() {
+    if (!debugOn) return;
+    const video = $('camVideo');
+    const tap = state.lastTap;
+    const line = $('debugLine');
+    line.hidden = false;
+    line.textContent = 'step ' + state.phase
+      + ' · tap ' + (tap ? Math.round(tap.x) + ',' + Math.round(tap.y) : '—')
+      + ' · ready ' + (cameraReady() ? 'yes' : 'no')
+      + ' · video ' + video.readyState + (video.paused ? ' paused' : ' playing');
+  }
+
+  function showRipple(x, y) {
+    const ripple = $('ripple');
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    ripple.classList.remove('go');
+    void ripple.offsetWidth;
+    ripple.classList.add('go');
+  }
+
+  function buzz() {
+    try {
+      if (navigator.vibrate) navigator.vibrate(15);
+    } catch (e) {}
+  }
+
+  let lastTapAt = 0;
+  function onPointerOrTouch(clientX, clientY) {
+    const now = Date.now();
+    if (now - lastTapAt < 120) return;
+    lastTapAt = now;
+    const pt = mapTap(clientX, clientY);
+    const layer = $('tapLayer').getBoundingClientRect();
+    if (pt.x < 0 || pt.y < 0 || pt.x > layer.width || pt.y > layer.height) return;
+    showRipple(pt.x, pt.y);
+    buzz();
+    state.lastTap = { x: pt.x, y: pt.y, contentX: pt.contentX, contentY: pt.contentY };
+    drawOverlay();
+    updateDebug();
+
+    if (state.phase !== 'ref-tap' && state.phase !== 'corners') {
+      if (state.phase === 'ref-card') setStatus('Tap Continue, then tap the card', 'wait', true);
+      else if (state.phase === 'ref-set') setStatus('Reference set', 'ok', false);
+      else if (state.phase === 'calculating') setStatus('Calculating...', 'wait', true);
+      else if (state.phase === 'camera-live' && !cameraReady()) setStatus('Tap the picture to start the camera', 'warn', true);
+      else if (state.phase === 'starting') setStatus('Starting camera...', 'wait', true);
+      updateDebug();
+      return;
+    }
+
+    if (!cameraReady()) {
+      const video = $('camVideo');
+      armVideo(video);
+      const pending = video.play();
+      if (pending && typeof pending.then === 'function') {
+        pending.then(function () {
+          if (cameraReady()) {
+            setStatus('Camera live', 'ok', false);
+            setInstruction(state.phase === 'ref-tap' ? refInstruction() : cornerInstruction());
+          } else {
+            setStatus('Camera is not playing yet', 'warn', true);
+          }
+          updateDebug();
+        }).catch(function () {
+          setStatus('Camera is not playing yet', 'warn', true);
+          updateDebug();
+        });
+      }
+      setStatus('Camera is not playing yet', 'warn', true);
+      setInstruction('Tap the picture once it is moving.');
+      updateDebug();
+      return;
+    }
+
+    if (state.phase === 'ref-tap') onRefTap(pt.x, pt.y);
+    else onCornerTap(pt.x, pt.y);
+    updateDebug();
+  }
+
+  const tapLayer = $('tapLayer');
+  tapLayer.addEventListener('pointerdown', function (ev) {
     if (ev.pointerType === 'mouse' && ev.button !== 0) return;
-    const rect = $('overlay').getBoundingClientRect();
-    const x = ev.clientX - rect.left;
-    const y = ev.clientY - rect.top;
-    if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
-    if (state.phase === 'ref-tap') onRefTap(x, y);
-    else onCornerTap(x, y);
-  });
+    if (ev.cancelable) ev.preventDefault();
+    onPointerOrTouch(ev.clientX, ev.clientY);
+  }, { passive: false });
+  tapLayer.addEventListener('touchstart', function (ev) {
+    if (ev.cancelable) ev.preventDefault();
+    const t = ev.changedTouches && ev.changedTouches[0];
+    if (!t) return;
+    onPointerOrTouch(t.clientX, t.clientY);
+  }, { passive: false });
 
   window.addEventListener('resize', function () { resizeCanvas(); drawOverlay(); });
 
@@ -1446,7 +1625,10 @@
     measureFromCorners: measureFromCorners,
     state: state,
     applyEnvironment: applyEnvironment,
-    setPhaseForTest: function (phase) { state.phase = phase; flowChrome(); }
+    setPhaseForTest: function (phase) { state.phase = phase; flowChrome(); },
+    mapTap: mapTap,
+    cameraReady: cameraReady,
+    armVideo: armVideo
   };
 })();
 </script>
