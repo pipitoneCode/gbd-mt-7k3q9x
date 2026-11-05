@@ -24,8 +24,13 @@
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
-    margin: 0; padding: 0; width: 100%; height: 100%;
-    overflow: hidden; background: var(--bg); color: var(--ink);
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    height: -webkit-fill-available;
+    overflow: hidden;
+    overscroll-behavior: none;
+    position: fixed; inset: 0;
+    background: var(--bg); color: var(--ink);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-size: 16px; line-height: 1.4;
   }
@@ -36,16 +41,20 @@
   .is-off { display: none !important; pointer-events: none !important; }
 
   .shell {
-    height: 100dvh; width: 100%; max-width: 100%;
-    display: flex; flex-direction: column; overflow: hidden;
-    padding-top: env(safe-area-inset-top);
-    padding-right: env(safe-area-inset-right);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
+    position: fixed; inset: 0;
+    width: 100%;
+    height: -webkit-fill-available;
+    height: 100svh;
+    overflow: hidden;
+    background: var(--bg);
   }
   .topbar {
-    flex: 0 0 auto; padding: 12px 16px 10px;
-    background: #0f1419; border-bottom: 1px solid var(--line); z-index: 5;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+    padding: 8px 12px 8px;
+    padding-top: calc(8px + env(safe-area-inset-top));
+    padding-left: calc(12px + env(safe-area-inset-left));
+    padding-right: calc(12px + env(safe-area-inset-right));
+    background: #0f1419; border-bottom: 1px solid var(--line);
   }
   .step-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; }
   #stepLabel { font-weight: 700; }
@@ -70,11 +79,20 @@
   }
   @media (prefers-reduced-motion: reduce) { .status-pill.pulse { animation: none; } }
 
-  .stage { position: relative; flex: 1 1 auto; min-height: 0; background: #000; overflow: hidden; }
-  #camVideo, #guide, #tapCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-  #camVideo { z-index: 0; object-fit: cover; background: #000; pointer-events: none; }
+  .stage {
+    position: fixed; left: 0; right: 0;
+    overflow: hidden; z-index: 1;
+    background: #3a414b;
+  }
+  #camVideo, #guide, #tapCanvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    max-width: 100%; max-height: 100%;
+    display: block;
+  }
+  #camVideo { z-index: 0; object-fit: cover; background: #3a414b; pointer-events: none; }
   #guide { z-index: 1; pointer-events: none; }
-  #tapCanvas { z-index: 2; touch-action: none; background: #000; }
+  #tapCanvas { z-index: 2; touch-action: none; background: #3a414b; }
 
   .panel {
     position: absolute; inset: 0; z-index: 5;
@@ -150,8 +168,11 @@
   .summary div + div { margin-top: 8px; }
 
   .bottombar {
-    flex: 0 0 auto; padding: 10px 16px 12px;
-    background: #0f1419; border-top: 1px solid var(--line); z-index: 5;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    padding-left: calc(12px + env(safe-area-inset-left));
+    padding-right: calc(12px + env(safe-area-inset-right));
+    background: #0f1419; border-top: 1px solid var(--line);
   }
   .note, .instruction, .version { margin: 0 0 8px; }
   .note, .version { color: var(--muted); }
@@ -165,7 +186,7 @@
 </head>
 <body>
 <div class="shell">
-  <header class="topbar">
+  <header class="topbar" id="topbar">
     <div class="step-row">
       <div id="stepLabel">Step 1 of 4</div>
       <div id="progressPct">0%</div>
@@ -238,7 +259,7 @@
     </section>
   </main>
 
-  <footer class="bottombar">
+  <footer class="bottombar" id="bottombar">
     <p id="debugLine" class="note is-off">debug</p>
     <p id="lidarNote" class="note is-off">iPhone Safari can't use LiDAR from a web page, so we measure from your taps.</p>
     <p id="instruction">Use your camera, or type the width and length.</p>
@@ -265,7 +286,7 @@
     </div>
     <button type="button" id="btnContinue" class="is-off">Continue</button>
     <button class="secondary" type="button" id="btnStartOver" disabled>Start over</button>
-    <p id="versionLabel" class="version">v4 · b47e278</p>
+    <p id="versionLabel" class="version">v5</p>
   </footer>
 </div>
 
@@ -273,7 +294,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = 'v4 · b47e278';
+  const APP_VERSION = 'v5';
   const EIGHTH = 0.125;
   const REF_TOLERANCE = 0.03;
   const CARD_WIDTH_IN = 3.370;
@@ -436,8 +457,33 @@
     setProgress(pct);
     if (state.phase !== 'camera') state.envWarning = null;
     renderPill();
-    if (still) requestAnimationFrame(function () { resizeTapCanvas(); drawStill(); });
-    else if (p === 'camera' || p === 'starting') requestAnimationFrame(function () { resizeGuide(); drawGuide(); });
+    layoutStage();
+    if (still && state.still && state.still.width) {
+      requestAnimationFrame(function () { layoutStage(); resizeTapCanvas(); drawStill(); });
+    } else if (p === 'camera' || p === 'starting') {
+      requestAnimationFrame(function () { layoutStage(); resizeGuide(); drawGuide(); });
+    }
+  }
+
+  function layoutStage() {
+    const vv = window.visualViewport;
+    const topOffset = vv ? vv.offsetTop : 0;
+    const viewH = vv ? vv.height : window.innerHeight;
+    const viewW = vv ? vv.width : window.innerWidth;
+    const topbar = $('topbar');
+    const bottom = $('bottombar');
+    topbar.style.top = topOffset + 'px';
+    const topH = topbar.offsetHeight;
+    const botH = bottom.offsetHeight;
+    bottom.style.top = (topOffset + viewH - botH) + 'px';
+    bottom.style.bottom = 'auto';
+    const stage = $('stage');
+    stage.style.top = (topOffset + topH) + 'px';
+    stage.style.left = '0px';
+    stage.style.width = viewW + 'px';
+    stage.style.height = Math.max(1, Math.round(viewH - topH - botH)) + 'px';
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   }
 
   function startMotionWatch() {
@@ -574,17 +620,24 @@
     };
   }
 
-  function resizeGuide() {
-    const canvas = $('guide');
+  function sizeCanvasToStage(canvas) {
     const rect = $('stage').getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const dpr = window.devicePixelRatio || 1;
     const w = Math.max(1, Math.round(rect.width));
     const h = Math.max(1, Math.round(rect.height));
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
+    canvas.style.position = 'absolute';
+    canvas.style.left = '0px';
+    canvas.style.top = '0px';
     canvas.style.width = w + 'px';
     canvas.style.height = h + 'px';
+    const bw = Math.max(1, Math.round(w * dpr));
+    const bh = Math.max(1, Math.round(h * dpr));
+    if (canvas.width !== bw) canvas.width = bw;
+    if (canvas.height !== bh) canvas.height = bh;
     canvas._cssW = w; canvas._cssH = h; canvas._dpr = dpr;
+  }
+  function resizeGuide() {
+    sizeCanvasToStage($('guide'));
   }
   function drawGuide() {
     const canvas = $('guide');
@@ -616,16 +669,8 @@
   function resizeTapCanvas() {
     const canvas = $('tapCanvas');
     if (canvas.classList.contains('is-off')) return;
-    const rect = canvas.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const w = Math.max(1, Math.round(rect.width));
-    const h = Math.max(1, Math.round(rect.height));
-    if (canvas._cssW === w && canvas._cssH === h && canvas._dpr === dpr) return;
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-    canvas.style.width = w + 'px';
-    canvas.style.height = h + 'px';
-    canvas._cssW = w; canvas._cssH = h; canvas._dpr = dpr;
+    if (!state.still || !state.still.width) return;
+    sizeCanvasToStage(canvas);
   }
 
   function fitImage(w, h, iw, ih) {
@@ -654,14 +699,14 @@
     const w = canvas._cssW, h = canvas._cssH, dpr = canvas._dpr || 1;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#05080c';
+    ctx.fillStyle = '#3a414b';
     ctx.fillRect(0, 0, w, h);
     const f = fitImage(w, h, img.width, img.height);
     state.fit = f;
     ctx.drawImage(img, f.x, f.y, f.w, f.h);
 
-    const refs = state.confirmed.slice(0, 2);
-    const corners = state.confirmed.slice(2);
+    const refs = state.confirmed.slice(0, 2).map(toCss);
+    const corners = state.confirmed.slice(2).map(toCss);
     if (refs.length === 2) {
       ctx.beginPath();
       ctx.moveTo(refs[0].x, refs[0].y);
@@ -699,9 +744,28 @@
     if (state.stillStep === 'check') drawCheckBadge(ctx, w, h);
 
     if (state.tentative) {
-      drawMarker(ctx, state.tentative.x, state.tentative.y);
-      drawLoupe(ctx, state.tentative.x, state.tentative.y, w, h);
+      const css = toCss(state.tentative);
+      drawMarker(ctx, css.x, css.y);
+      drawLoupe(ctx, state.tentative, css, w, h);
     }
+  }
+
+  function toCss(p) {
+    const f = state.fit;
+    const img = state.still;
+    if (!f || !img || !img.width) return { x: p.x, y: p.y };
+    return {
+      x: f.x + (p.x / img.width) * f.w,
+      y: f.y + (p.y / img.height) * f.h
+    };
+  }
+  function toImage(x, y) {
+    const f = state.fit;
+    const img = state.still;
+    return {
+      x: (x - f.x) / f.w * img.width,
+      y: (y - f.y) / f.h * img.height
+    };
   }
 
   function drawDot(ctx, x, y, label, fill) {
@@ -801,18 +865,18 @@
     ctx.fillText(text, x, y);
     ctx.restore();
   }
-  function drawLoupe(ctx, cssX, cssY, w, h) {
+  function drawLoupe(ctx, imgPt, cssPt, w, h) {
     const img = state.still;
     const f = state.fit;
     if (!img || !f || f.w < 1) return;
     const zoom = 2.8;
     const dia = 132;
     const r = dia / 2;
-    const placeTop = cssY > h * 0.42;
+    const placeTop = cssPt.y > h * 0.42;
     const cx = w / 2;
     const cy = placeTop ? 12 + r : h - 12 - r;
-    const ix = (cssX - f.x) / f.w * img.width;
-    const iy = (cssY - f.y) / f.h * img.height;
+    const ix = imgPt.x;
+    const iy = imgPt.y;
     const srcSpan = (dia / zoom) * (img.width / f.w);
     ctx.save();
     ctx.beginPath();
@@ -858,8 +922,8 @@
       setStatus('Tap on the photo', 'warn', true);
       return;
     }
-    state.tentative = { x: pt.x, y: pt.y };
-    state.lastTap = state.tentative;
+    state.tentative = toImage(pt.x, pt.y);
+    state.lastTap = { x: pt.x, y: pt.y };
     setStatus('Drag the marker, then tap Next', 'wait', true);
     setInstruction('Drag the marker if you need to, then tap Next.');
     $('btnNext').disabled = false;
@@ -868,8 +932,8 @@
   function moveTentative(pt) {
     if (state.phase !== 'still' || !state.fit || state.stillStep === 'check') return;
     const c = clampToImage(pt.x, pt.y);
-    state.tentative = { x: c.x, y: c.y };
-    state.lastTap = state.tentative;
+    state.tentative = toImage(c.x, c.y);
+    state.lastTap = { x: c.x, y: c.y };
     $('btnNext').disabled = false;
     drawStill();
   }
@@ -886,7 +950,8 @@
     } else if (n === 2) {
       const a = state.confirmed[0], b = state.confirmed[1];
       const px = Math.hypot(b.x - a.x, b.y - a.y);
-      if (px < 8) {
+      const cssDist = state.fit && state.still ? px * (state.fit.w / state.still.width) : px;
+      if (cssDist < 8) {
         state.confirmed.pop();
         state.stillStep = 'right';
         setStatus('Those taps are too close', 'warn', true);
@@ -980,6 +1045,7 @@
   }
 
   function beginStill(img) {
+    if (!img || !img.width || !img.height) return;
     state.still = img;
     state.confirmed = [];
     state.tentative = null;
@@ -1200,10 +1266,17 @@
     placeTentative(pt);
   });
 
-  window.addEventListener('resize', function () {
-    if (state.phase === 'still') { resizeTapCanvas(); drawStill(); }
+  function onViewportChange() {
+    layoutStage();
+    if (state.phase === 'still' && state.still && state.still.width) { resizeTapCanvas(); drawStill(); }
     if (state.phase === 'camera' || state.phase === 'starting') { resizeGuide(); drawGuide(); }
-  });
+  }
+  window.addEventListener('resize', onViewportChange);
+  window.addEventListener('orientationchange', onViewportChange);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', onViewportChange);
+    window.visualViewport.addEventListener('scroll', onViewportChange);
+  }
 
   $('versionLabel').textContent = APP_VERSION;
   if (debugOn) $('debugLine').classList.remove('is-off');
